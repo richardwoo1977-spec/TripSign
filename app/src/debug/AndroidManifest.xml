@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ver 1.0.0 | 2026-11-07 21:40 -->
+<!-- Debug builds only: a receiver for the voice test (DebugSpeakReceiver). Not part of release builds. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name="io.tripsign.app.service.DebugSpeakReceiver"
+            android:exported="true" />
+    </application>
+</manifest>

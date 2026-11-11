@@ -1,0 +1,780 @@
+<!doctype html>
+<!-- ver 1.4.5 | 2026-11-07 13:25 -->
+<!-- TripSign 폰 검증 페이지. 서버로 아무것도 보내지 않습니다. 받은 기록은 이 폰 브라우저에만 저장됩니다. -->
+<!-- build: tools/build_verify.py 가 /*JSQR*/ 자리에 jsQR(Apache-2.0)을 넣어 index.html 한 파일을 만듭니다. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3F5F8">
+<title>트립사인 운행기록 검증</title>
+<style>
+:root{--bg:#F3F5F8;--card:#FFFFFF;--ink:#0B1B33;--sub:#556275;--muted:#5F6B7D;--line:#E3E8EF;--primary:#1F5FD6;--ok:#0B7A57;--oksoft:#E3F5EE;--warn:#B45309;--warnsoft:#FDF1E3;--bad:#B42318;--badsoft:#FDECEA;--seg:#E6EAF0}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1521;--card:#1A2332;--ink:#E8EDF5;--sub:#A9B4C4;--muted:#8F9BAD;--line:#2A3444;--primary:#356CDD;--ok:#34C08F;--oksoft:#173A30;--warn:#F0A04B;--warnsoft:#3B2A17;--bad:#F2645A;--badsoft:#3D1D1D;--seg:#222C3B}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Asta Sans","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+@media (min-width:900px){.wrap{max-width:920px}}
+h1{font-size:24px;margin:4px 0 4px;font-weight:800}
+.lead{color:var(--sub);margin:0 0 18px;font-size:15px}
+.card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:14px}
+.card h2{font-size:18px;margin:0 0 12px;font-weight:800}
+button{font:inherit;font-weight:800;border:0;border-radius:14px;min-height:52px;padding:0 20px;cursor:pointer}
+.primary{background:var(--primary);color:#fff}
+.ghost{background:var(--seg);color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+video{width:100%;border-radius:14px;background:#000;display:none;aspect-ratio:4/3;object-fit:cover}
+.bar{height:10px;background:var(--seg);border-radius:5px;overflow:hidden;margin:12px 0 6px}
+.bar i{display:block;height:100%;width:0;background:var(--primary);transition:width .2s}
+.muted{color:var(--muted)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:baseline}
+.facts dt{color:var(--sub);font-weight:700}
+.facts dd{margin:0;font-weight:800;font-variant-numeric:tabular-nums;word-break:keep-all}
+.okv{color:var(--ok)} .warnv{color:var(--warn)} .badv{color:var(--bad)}
+.fp{font-size:26px;letter-spacing:1px;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* second lines under a fact: broken on purpose, never wrapped by the browser */
+.facts dd .s{display:block;font-size:14px;font-weight:700;color:var(--muted);white-space:nowrap}
+/* phones: label above value, so long labels never squeeze the value (fold cover screens are ~344 px) */
+@media (max-width:479px){.facts{grid-template-columns:1fr;gap:0}.facts dt{font-size:14px;margin-top:12px}.facts dt:first-of-type{margin-top:0}.facts dd{font-size:18px}}
+.note{background:var(--warnsoft);color:var(--ink);border-radius:12px;padding:10px 12px;margin-top:10px}
+.badbox{background:var(--badsoft);border-radius:12px;padding:10px 12px;margin-top:10px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{background:var(--bg);border-radius:12px;padding:10px 8px}
+.tile b small{font-size:12px;color:var(--sub)}
+.tile b{display:block;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tile span{color:var(--sub);font-size:13px;font-weight:700;white-space:nowrap}
+/* narrow phones: one tile per line, label left and value right (no cut-off labels or numbers) */
+@media (max-width:479px){.tiles{grid-template-columns:1fr;gap:6px}.tile{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 12px}}
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:720px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:right;white-space:nowrap;font-size:14px}
+th{color:var(--sub);font-weight:700;font-size:12px;vertical-align:bottom}
+td.l,th.l{text-align:left}
+td.rm{line-height:1.45;vertical-align:middle}
+tr.sum td{font-weight:800;border-top:2px solid var(--muted)}
+.saved li{margin:6px 0}
+.hidden{display:none !important}
+.months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+/* lines in these boxes are broken on purpose (each line ≤ 18 Korean characters, fits a 360 px phone) */
+.lines{line-height:1.5} .lines div{white-space:nowrap}
+/* small screens (Galaxy Fold cover 344 px, 320 px phones): the hand-broken lines get a size that keeps each on one line */
+@media (max-width:379px){.lines{font-size:14px}} .sub2{display:block;font-size:15px;color:var(--sub);font-weight:700;margin-top:2px}
+.mon{border-radius:12px;padding:8px 10px;background:var(--bg)}
+.mon b{display:block;font-size:15px}
+.mon span{font-size:13px;font-weight:700;white-space:nowrap}
+.mon.pre span{color:var(--muted)} .mon.ok span{color:var(--ok)} .mon.part span{color:var(--warn)} .mon.none span{color:var(--muted)} .mon.gap span{color:var(--bad)} .mon.now span{color:var(--primary)}
+.tag{display:inline-block;background:var(--warnsoft);color:var(--warn);border-radius:8px;padding:2px 8px;font-size:13px;font-weight:800;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>트립사인 운행기록 검증</h1>
+  <div class="lead lines"><div>차량 화면의 QR을 폰 카메라로 비추면</div><div>이 페이지가 열리고 바로 받습니다.</div><div>서명을 확인한 뒤 국세청 서식 엑셀로</div><div>내려받습니다.</div><div>기록은 서버로 보내지 않고 이 폰에만 둡니다.</div></div>
+
+  <div class="card" id="recvCard">
+    <h2>1. 차량에서 받기</h2>
+    <div class="row">
+      <button class="primary" id="startBtn">카메라로 받기</button>
+      <button class="ghost" id="demoBtn">예시 데이터로 보기</button>
+    </div>
+    <video id="video" playsinline muted></video>
+    <div id="prog" class="hidden">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="muted" id="progText">QR을 화면 가운데에 맞춰 주세요</div>
+    </div>
+    <div id="recvNote" class="note lines hidden"></div>
+    <div id="recvErr" class="badbox hidden"></div>
+  </div>
+
+  <div id="result" class="hidden">
+    <div class="card">
+      <h2>2. 검증 결과<span id="demoTag" class="tag hidden">예시 데이터</span></h2>
+      <dl class="facts" id="facts"></dl>
+      <div class="note lines"><div>차량 화면의 <b>키 지문</b>과 같은지 보세요.</div><div>같으면 그 차량에서 서명한 기록입니다.</div><div>다르면 다른 기기에서 만든 기록입니다.</div></div>
+    </div>
+    <div class="card">
+      <h2 id="monthTitle">운행기록부</h2>
+      <div class="tiles" id="tiles"></div>
+      <div class="tbl" style="margin-top:12px"><table id="tbl"></table></div>
+      <div id="tblHint" class="muted hidden lines" style="font-size:13px;font-weight:700;margin-top:8px"><div>표가 화면보다 넓습니다</div><div>옆으로 밀면 ⑩ 비고가 보입니다</div></div>
+    </div>
+    <div class="card">
+      <h2>3. 엑셀 받기</h2><span class="sub2" style="margin:-6px 0 12px">국세청 업무용승용차 운행기록부 서식</span>
+      <div class="row">
+        <button class="primary" id="xMonth">받은 기간 엑셀</button>
+        <button class="ghost" id="xYear">사업연도 누적 엑셀</button>
+      </div>
+      <div class="muted lines" id="yearNote" style="margin:10px 0 0"></div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="covCard">
+    <h2 id="covTitle">이 폰에 받은 기록</h2><span class="sub2" id="covSub" style="margin:-6px 0 12px"></span>
+    <div class="months" id="covMonths"></div>
+    <div id="covVerdict" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" id="savedCard">
+    <h2>이 폰에 저장된 기록</h2>
+    <ul class="saved" id="saved"><li class="muted">아직 없습니다</li></ul>
+  </div>
+  <div class="muted lines" style="font-size:13px"><div>QR 해독: jsQR (Apache-2.0)</div><div>서명: ECDSA P-256 · SHA-256</div><div>(브라우저 내장 Web Crypto)</div></div>
+</div>
+
+<script>
+/*JSQR*/
+</script>
+<script>
+"use strict";
+// ---------- small helpers ----------
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => n == null ? "–" : Number(n).toLocaleString("ko-KR");
+const SEP = "\u001F";
+// 0.5.2: TripSign auth server key (phone checks in front of the car). Same value as AuthProof.SERVER_KEY_B64 in the app.
+const AUTH_SERVER_KEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKxwVZDgFUdUunYyTGvxdkQXwptSY8oRKd0/i4mw6d7RPYKTFoybRwl1XvVEpd48+q2LWeBFOEm9/5bFOxJaWwg==";
+let authKeyP = null;
+function authKey() {
+  if (!authKeyP) authKeyP = crypto.subtle.importKey("spki", b64bytes(AUTH_SERVER_KEY), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]).catch(() => null);
+  return authKeyP;
+}
+const hex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+const b64bytes = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function sha256hex(text) { return hex(await crypto.subtle.digest("SHA-256", enc.encode(text))); }
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(bytes) { let c = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) c = CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+const crcHex = s => crc32(enc.encode(s)).toString(16).padStart(8, "0");
+
+// DER ECDSA signature -> raw r||s (64 bytes) for Web Crypto
+function derToRaw(der) {
+  let i = 2; if (der[1] & 0x80) i = 2 + (der[1] & 0x7f);
+  const part = () => { if (der[i] !== 0x02) throw new Error("der"); const len = der[i + 1]; let v = der.slice(i + 2, i + 2 + len); i += 2 + len; while (v.length > 32 && v[0] === 0) v = v.slice(1); const out = new Uint8Array(32); out.set(v, 32 - v.length); return out; };
+  const r = part(), s = part(); const raw = new Uint8Array(64); raw.set(r, 0); raw.set(s, 32); return raw;
+}
+async function gunzip(bytes) {
+  const ds = new DecompressionStream("gzip");
+  const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+  return new TextDecoder().decode(buf);
+}
+
+// ---------- frames ----------
+// TSQ2 (car app 0.5~): fountain code. Frame j < K is block j; frame j >= K is the XOR of a random subset
+// of blocks fixed by (sid, j). Any K independent frames rebuild the payload, so no frame is special and it
+// does not matter when the phone starts looking. The subset generator mirrors core/Fountain.kt bit for bit.
+// TSQ1 (car app 0.4): numbered chunks, every one of them needed.
+const recv = { mode: null, sid: null, total: 0, parts: new Map(), k: 0, len: 0, bb: 0, coef: [], rows: [], pivotRow: null };
+function fountainCoef(sid, j, k) {
+  const words = new Uint32Array((k + 31) >>> 5);
+  if (j < k) { words[j >>> 5] = (1 << (j & 31)) >>> 0; return words; }
+  let a = (Math.imul(j, 0x9E3779B1 | 0) ^ Math.imul(sid, 0x85EBCA6B | 0)) | 0;
+  for (let w = 0; w < words.length; w++) {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    words[w] = (t ^ (t >>> 14)) >>> 0;
+  }
+  const rest = k & 31;
+  if (rest) words[words.length - 1] = (words[words.length - 1] & ((1 << rest) - 1)) >>> 0;
+  if (words.every(x => x === 0)) { const b = j % k; words[b >>> 5] = (1 << (b & 31)) >>> 0; }
+  return words;
+}
+const fbit = (c, i) => (c[i >>> 5] >>> (i & 31)) & 1;
+function xorInto(a, b) { for (let i = 0; i < a.length; i++) a[i] ^= b[i]; }
+function resetRecv(mode, sid) {
+  Object.assign(recv, { mode, sid, total: 0, parts: new Map(), k: 0, len: 0, bb: 0, coef: [], rows: [], pivotRow: null });
+}
+function takeFountain(p) {
+  if (p.length !== 7) return false;
+  const [, sid, js, ks, ls, crc, chunk] = p;
+  const j = Number(js), k = Number(ks), len = Number(ls);
+  if (!/^[0-9a-f]{4}$/.test(sid) || !Number.isInteger(j) || j < 0 || !Number.isInteger(k) || k <= 0 || !Number.isInteger(len) || len < 0) return false;
+  if (crcHex(chunk) !== crc) return false;
+  let data; try { data = Uint8Array.from(b64bytes(chunk)); } catch (e) { return false; }
+  if (!data.length) return false;
+  if (recv.mode !== "TSQ2" || recv.sid !== sid) {
+    if (Math.max(1, Math.ceil(len / data.length)) !== k) return false;
+    resetRecv("TSQ2", sid);
+    recv.k = k; recv.len = len; recv.bb = data.length; recv.pivotRow = new Int32Array(k).fill(-1);
+  } else if (k !== recv.k || len !== recv.len || data.length !== recv.bb) return false;
+  if (recv.coef.length === recv.k) return false;
+  const c = fountainCoef(parseInt(sid, 16), j, k);
+  for (let b = 0; b < k; b++) { const r = recv.pivotRow[b]; if (r >= 0 && fbit(c, b)) { xorInto(c, recv.coef[r]); xorInto(data, recv.rows[r]); } }
+  let piv = -1; for (let b = 0; b < k; b++) if (fbit(c, b)) { piv = b; break; }
+  if (piv < 0) return false;   // nothing new
+  for (let r = 0; r < recv.coef.length; r++) if (fbit(recv.coef[r], piv)) { xorInto(recv.coef[r], c); xorInto(recv.rows[r], data); }
+  recv.pivotRow[piv] = recv.coef.length; recv.coef.push(c); recv.rows.push(data);
+  return true;
+}
+function takeFrame(raw) {
+  const text = raw.slice(raw.indexOf("#") + 1);   // every frame is a link "https://…/#TSQ2:…"
+  const p = text.split(":");
+  if (p[0] === "TSQ2") return takeFountain(p);
+  if (p.length !== 6 || p[0] !== "TSQ1") return false;
+  const [, sid, i, n, crc, chunk] = p;
+  if (crcHex(chunk) !== crc) return false;
+  if (recv.mode !== "TSQ1" || recv.sid !== sid) { resetRecv("TSQ1", sid); recv.total = +n; }
+  if (recv.parts.has(+i)) return false;
+  recv.parts.set(+i, chunk);
+  return true;
+}
+const recvCount = () => recv.mode === "TSQ2" ? recv.coef.length : recv.parts.size;
+const recvTotal = () => recv.mode === "TSQ2" ? recv.k : recv.total;
+function joined() {
+  if (recv.mode === "TSQ2") {
+    if (!recv.k || recv.coef.length < recv.k) return null;
+    const out = new Uint8Array(recv.k * recv.bb);
+    for (let b = 0; b < recv.k; b++) out.set(recv.rows[recv.pivotRow[b]], b * recv.bb);
+    return out.slice(0, recv.len);
+  }
+  if (!recv.total || recv.parts.size < recv.total) return null;
+  let s = ""; for (let i = 0; i < recv.total; i++) { const c = recv.parts.get(i); if (c == null) return null; s += c; }
+  return b64bytes(s);
+}
+
+// ---------- verify + parse ----------
+async function verifyPack(text) {
+  const lines = text.replace(/\n$/, "").split("\n");
+  const head = lines[0].split("\t");
+  if (head[0] !== "TS1") throw new Error("트립사인 형식이 아닙니다");
+  const h = {}; head.slice(1).forEach(kv => { const k = kv.indexOf("="); h[kv.slice(0, k)] = kv.slice(k + 1); });
+  if (!h.from && h.month) { h.from = h.month; h.to = h.month; }
+  const spki = b64bytes(h.pub);
+  const key = await crypto.subtle.importKey("spki", spki, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  const fpHex = hex(await crypto.subtle.digest("SHA-256", spki)).toUpperCase();
+  const fp = fpHex.slice(0, 4) + "-" + fpHex.slice(4, 8);
+  const sigOk = async (hash, sig) => { try { return await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, derToRaw(b64bytes(sig)), enc.encode(hash)); } catch (e) { return false; } };
+  // Only the last "E" line carries a signature: its hash commits to every earlier line through prevHash.
+  const entries = []; let prev = null, prevSeq = null, headHash = null, headSig = null, linkBad = null, extraBad = 0;
+  for (const line of lines.slice(1)) {
+    const [kind, c0, sig] = line.split("\t");
+    let canon = c0;
+    if (kind === "E" && canon.endsWith("|")) canon += prev || "";
+    const f = canon.split("|");
+    const hash = await sha256hex(canon);
+    const e = { kind, seq: +f[1], createdAt: +f[2], type: f[3], tripId: f[4], startMs: +f[5], endMs: +f[6],
+      startOdo: f[7] === "-" ? null : parseFloat(f[7]), endOdo: f[8] === "-" ? null : parseFloat(f[8]),
+      distanceKm: parseFloat(f[10]), source: f[11], purpose: f[13] === "-" ? null : f[13], note: f[14], prevHash: f[15], hash };
+    if (kind === "E") {
+      if (prev != null && (e.prevHash !== prev || e.seq !== prevSeq + 1) && linkBad == null) linkBad = e.seq;
+      prev = hash; prevSeq = e.seq; headHash = hash; headSig = sig;
+    } else if (!(await sigOk(hash, sig))) extraBad++;
+    entries.push(e);
+  }
+  // phone checks: the server's signature over the proof, made for THIS car's key
+  const carId = fpHex.slice(0, 32).toLowerCase();
+  for (const e of entries) {
+    if (e.type !== "AUTH") continue;
+    const i = e.note.lastIndexOf(SEP), text = i > 0 ? e.note.slice(0, i) : "", sig = i > 0 ? e.note.slice(i + 1) : "";
+    const f = text.split("~");
+    e.auth = f.length === 11 && f[0] === "tsa1" ? { car: f[2], purpose: f[3], target: f[4], email: f[7], phone: f[8], at: +f[10] } : null;
+    let ok = false;
+    try { const k = await authKey(); ok = !!(k && e.auth && e.auth.car === carId && e.auth.target === e.tripId) && await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, k, derToRaw(b64bytes(sig)), enc.encode(text)); } catch (x) { ok = false; }
+    e.authOk = ok;
+  }
+  const headOk = headHash != null && await sigOk(headHash, headSig);
+  const main = entries.filter(e => e.kind === "E");
+  return { h, fp, entries, signOk: headOk && extraBad === 0, linkBad, first: main.length ? main[0].seq : null, last: main.length ? main[main.length - 1].seq : null };
+}
+
+const PURPOSE = { BUSINESS: "업무", COMMUTE: "출퇴근", PERSONAL: "개인" };
+const WD = ["일", "월", "화", "수", "목", "금", "토"];
+const meter = km => Math.floor(km + 1e-6);
+function local(ms, tzo) { return new Date(ms + tzo * 60000); }   // read with getUTC*
+function ymOf(ms, tzo) { const d = local(ms, tzo); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); }
+function dayLabel(ms, tzo) { const d = local(ms, tzo); return `${d.getUTCMonth() + 1}/${d.getUTCDate()} (${WD[d.getUTCDay()]})`; }
+function ymdLabel(ms, tzo) { const d = local(ms, tzo); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")} (${WD[d.getUTCDay()]})`; }
+function hm(ms, tzo) { const d = local(ms, tzo); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); }
+
+function buildRows(entries) {
+  const purposes = new Map(), drivers = new Map(), driverChanges = new Map(), assignSeq = new Map(), auths = new Map(), denies = new Map();
+  let vehicle = null;
+  for (const e of entries) {
+    if (e.type === "PURPOSE") { if (!purposes.has(e.tripId)) purposes.set(e.tripId, []); purposes.get(e.tripId).push(e); }
+    if (e.type === "AUTH") auths.set(e.tripId, e);
+    // 1.4.5: "내가 아니다" pressed on the 미인증 운행 card at the next car start (before logging in: it says no name)
+    if (e.type === "DENY") { if (!denies.has(e.tripId)) denies.set(e.tripId, []); denies.get(e.tripId).push(e.startMs); }
+    if (e.type === "ASSIGN") { const i = e.note.indexOf(SEP); if (i >= 0) {
+      const d = { dept: e.note.slice(0, i), name: e.note.slice(i + 1) }, prev = drivers.get(e.tripId);
+      if (prev && (prev.dept !== d.dept || prev.name !== d.name)) driverChanges.set(e.tripId, (driverChanges.get(e.tripId) || 0) + 1);
+      drivers.set(e.tripId, d); assignSeq.set(e.tripId, e.seq); } }
+    if (e.type === "VEHICLE") { const i = e.note.indexOf(SEP); if (i >= 0) vehicle = { model: e.note.slice(0, i), plate: e.note.slice(i + 1) }; }
+  }
+  const rows = [];
+  // 1.4.4: how the "who is driving?" warning reached the driver before each drive (WARN records since the last drive)
+  let warns = [];
+  for (const e of entries) {
+    if (e.type === "WARN") { warns.push(e); continue; }
+    if (e.type !== "TRIP" && e.type !== "GAP") continue;
+    const warnedBy = new Set(warns.filter(w => w.startMs <= e.startMs).map(w => w.note));
+    warns = [];
+    const b = e.startOdo == null ? null : meter(e.startOdo), a = e.endOdo == null ? null : meter(e.endOdo);
+    const km = (b != null && a != null) ? Math.max(0, a - b) : Math.round(e.distanceKm);
+    const hist = e.type === "TRIP" ? (purposes.get(e.tripId) || []) : [];
+    const last = hist.length ? hist[hist.length - 1] : null;
+    const chosen = hist.filter(x => x.purpose != null);
+    const unverified = e.type === "TRIP" && e.note === "unverified";
+    const adminNote = last && last.note.startsWith("admin" + SEP) ? last.note.slice(6).split(SEP) : null;
+    const au = auths.get(e.tripId), as = assignSeq.get(e.tripId);
+    const authOk = !!(au && as != null && au.seq === as - 1 && au.authOk);
+    // 1.4.2: a 미인증 운행 counts as 출퇴근/업무 only after a phone check AND a later administrator's purpose (the marks stay)
+    const settled = unverified && authOk && !!adminNote && !!(last && last.purpose) && last.seq > au.seq;
+    rows.push({ id: e.tripId, gap: e.type === "GAP", startMs: e.startMs, endMs: e.endMs, driver: drivers.get(e.tripId) || null,
+      before: b, after: a, km, purpose: last ? last.purpose : null, changes: Math.max(0, chosen.length - 1), driverChanges: driverChanges.get(e.tripId) || 0,
+      late: chosen.length ? chosen[0].createdAt - e.endMs > 24 * 3600000 : false,
+      unverified, skipped: hist.some(x => x.note === "skip"), admin: adminNote ? (adminNote[1] || "") : null,
+      authOk, authBad: !!(au && !au.authOk), settled, counts: !unverified || settled,
+      warnedBy: ["voice", "notice", "screen"].filter(k => warnedBy.has(k)), denyCount: (denies.get(e.tripId) || []).length,
+      denyFirst: (denies.get(e.tripId) || []).reduce((a, b) => Math.min(a, b), Infinity) });
+  }
+  rows.sort((x, y) => x.startMs - y.startMs);
+  // 1.4.5: who drove next after "내가 아니다" (only a hint: the press itself carries no name)
+  for (const r of rows) if (r.denyCount) {
+    const n = rows.find(x => !x.gap && x.startMs > r.denyFirst);
+    r.denyNext = !n ? "아직 없음" : n.driver ? n.driver.name : n.unverified ? "미인증" : "-";
+  }
+  return { rows, vehicle };
+}
+function totals(rows) {
+  const t = { km: 0, com: 0, biz: 0, per: 0, unc: 0, gap: 0, uncN: 0, gapN: 0, unv: 0, unvN: 0 };
+  for (const r of rows) { t.km += r.km; if (r.gap) { t.gap += r.km; t.gapN++; } else if (r.unverified && !r.settled) { t.unv += r.km; t.unvN++; } else if (r.purpose === "COMMUTE") t.com += r.km; else if (r.purpose === "BUSINESS") t.biz += r.km; else if (r.purpose === "PERSONAL") t.per += r.km; else { t.unc += r.km; t.uncN++; } }
+  t.work = t.com + t.biz; t.ratio = t.km > 0 ? Math.round(t.work * 1000 / t.km + 1e-9) / 10 : null; return t;
+}
+function monthRuns(yms) {
+  const ms = yms.map(m => +m.split("-")[1]), out = []; let a = null, b = null;
+  for (const m of ms) { if (a != null && m === b + 1) { b = m; continue; } if (a != null) out.push(a === b ? `${a}월` : `${a}월~${b}월`); a = b = m; }
+  if (a != null) out.push(a === b ? `${a}월` : `${a}월~${b}월`);
+  return out.join(", ");
+}
+function remark(r) { return remarkList(r).join(", "); }
+// 1.4.3: say so when the table is wider than the screen (otherwise ⑩ 비고 looks cut off)
+function tblHint() { const tb = document.querySelector(".tbl"); if (tb) $("tblHint").classList.toggle("hidden", tb.scrollWidth <= tb.clientWidth + 1); }
+window.addEventListener("resize", () => tblHint());
+// 1.4.3: the phone table shows one item per line (no cut-off words); the Excel keeps "a, b, c"
+// 1.4.4: since 0.5.2f a drive with nobody logged in is 미인증 whether or not the warning got through; say how it did
+const WARN_BY = { voice: "음성", notice: "알림", screen: "화면" };
+function warnText(kinds) { return kinds && kinds.length ? "경고: " + kinds.map(k => WARN_BY[k]).join("·") : "경고 전달 기록 없음"; }
+function remarkList(r) {
+  const out = [];
+  if (r.gap) out.push("미기록 구간");
+  else if (r.unverified) { out.push("미인증 운행"); out.push(warnText(r.warnedBy)); if (r.denyCount) out.push("'내가 아님' " + r.denyCount + "회(이어서 운전: " + (r.denyNext || "-") + ")"); if (r.settled) out.push("사후 확인 후 관리자 구분"); if (r.settled && r.purpose === "PERSONAL") out.push("개인"); }
+  else if (!r.purpose) out.push(r.skipped ? "미분류(건너뜀)" : "미분류");
+  else if (r.purpose === "PERSONAL") out.push("개인");
+  if (r.before == null) out.push("계기판 값 없음");
+  if (r.changes) out.push("목적 변경 " + r.changes + "회");
+  if (r.driverChanges) out.push("사용자 변경 " + r.driverChanges + "회");
+  if (r.authOk) out.push("폰 본인확인");
+  if (r.authBad) out.push("본인확인 서명 불일치");
+  if (r.admin != null) out.push("관리자 수정(" + r.admin + ")");
+  return out;
+}
+
+// ---------- storage (this phone only) ----------
+const STORE = "tripsign.packs.v1";
+function loadStore() { try { return JSON.parse(localStorage.getItem(STORE) || "[]"); } catch (e) { return []; } }
+function saveStore(list) { try { localStorage.setItem(STORE, JSON.stringify(list)); return true; } catch (e) { return false; } }
+
+// ---------- what has this phone received? ----------
+// A month is complete when an export that covers it was made at least 6 h after the month ended (a trip that
+// was still running at midnight is in it), its key's ledger already existed for the whole month, and no hole
+// in the record numbers touches it. Everything is derived from the signed packs; nothing is guessed.
+const MARGIN = 6 * 3600000;
+const cache = new Map();
+async function verified(p) { if (!cache.has(p.text)) cache.set(p.text, await verifyPack(p.text)); return cache.get(p.text); }
+function monthStart(m, tzo) { const [y, mo] = m.split("-").map(Number); return Date.UTC(y, mo - 1, 1) - tzo * 60000; }
+function nextMonth(m) { let [y, mo] = m.split("-").map(Number); mo++; if (mo > 12) { mo = 1; y++; } return y + "-" + String(mo).padStart(2, "0"); }
+function fmtAt(ms, tzo) { const d = local(ms, tzo); return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; }
+
+async function coverage(nowMs, plate, demo) {
+  const packs = loadStore().filter(p => (p.plate || "") === (plate || "") && !!p.demo === !!demo);
+  if (!packs.length) return null;
+  const tzo = packs[packs.length - 1].tzo || 540, fyStart = packs[packs.length - 1].fy || 1;
+  const today = ymOf(nowMs, tzo), fyY = fyOf(today, fyStart);
+  const first = fyY + "-" + String(fyStart).padStart(2, "0");
+  const months = monthsBetween(first, today);
+  const byKey = new Map();
+  for (const p of packs) { const v = await verified(p); if (!byKey.has(v.fp)) byKey.set(v.fp, []); byKey.get(v.fp).push({ p, v }); }
+  // holes in record numbers, per key, as time windows
+  const holes = [];
+  for (const [fp, list] of byKey) {
+    const iv = list.map(({ v }) => { const e = v.entries.filter(x => x.kind === "E"); return e.length ? { a: e[0].seq, b: e[e.length - 1].seq, ea: e[0], eb: e[e.length - 1] } : null; }).filter(Boolean).sort((x, y) => x.a - y.a);
+    let cur = null;
+    for (const x of iv) {
+      if (!cur) { cur = { ...x }; continue; }
+      if (x.a <= cur.b + 1) { if (x.b > cur.b) { cur.b = x.b; cur.eb = x.eb; } }
+      else { holes.push({ fp, from: cur.eb.createdAt, to: x.ea.createdAt, seqs: [cur.b + 1, x.a - 1] }); cur = { ...x }; }
+    }
+  }
+  // the earliest ledger on this phone: months that ended before it have no TripSign records at all
+  // (not "missing"), and the month it started in only counts from that moment
+  let minBorn = 0;
+  for (const { v } of [...byKey.values()].flat()) { const b = +(v.h.born || 0); if (b > 0 && (!minBorn || b < minBorn)) minBorn = b; }
+  const out = [];
+  let lastMade = 0;
+  for (const { p, v } of [...byKey.values()].flat()) lastMade = Math.max(lastMade, +(v.h.made || 0));
+  for (const m of months) {
+    const s = monthStart(m, tzo), e = monthStart(nextMonth(m), tzo);
+    let best = 0;
+    const keysWithRows = new Set();
+    for (const [fp, list] of byKey) for (const { p, v } of list) {
+      if (!monthsBetween(v.h.from, v.h.to).includes(m)) continue;
+      if (v.entries.some(x => (x.type === "TRIP" || x.type === "GAP") && ymOf(x.startMs, tzo) === m)) keysWithRows.add(fp);
+      const born = +(v.h.born || 0);
+      if (born > Math.max(s, minBorn)) continue;    // this key's ledger did not exist for the whole month
+      best = Math.max(best, +(v.h.made || 0));
+    }
+    // a hole between record numbers only matters inside a month an export already proved complete
+    // (that cannot happen with honest packs; it means a pack is missing or was altered)
+    const hole = holes.find(h => h.from > s && h.to < e);
+    let st, label;
+    if (minBorn && e <= minBorn) { st = "pre"; label = "기록 전"; }
+    else if (m === today) { st = best ? "now" : "none"; label = best ? fmtAt(best, tzo).replace(/^\d+월 /, "") + "까지" : "아직"; }
+    else if (best >= e + MARGIN) { st = hole ? "gap" : "ok"; label = hole ? "빠진 기록" : "완료"; }
+    else if (best > s) { st = "part"; label = fmtAt(best, tzo).replace(/^\d+월 /, "") + "까지"; }
+    else { st = "none"; label = "없음"; }
+    out.push({ m, st, label, keys: keysWithRows.size });
+  }
+  const keyChange = out.filter(x => x.keys > 1).map(x => x.m);
+  return { fyY, months: out, holes, keys: [...byKey.keys()], keyChange, lastMade, tzo, minBorn };
+}
+
+async function renderCoverage(nowMs) {
+  const plate = current && current.vehicle ? current.vehicle.plate : (loadStore().slice(-1)[0] || {}).plate;
+  const demo = current ? current.demo : !!(loadStore().slice(-1)[0] || {}).demo;
+  const c = await coverage(nowMs || Date.now(), plate, demo);
+  const card = $("covCard");
+  if (!c) { card.classList.add("hidden"); return null; }
+  card.classList.remove("hidden");
+  $("covTitle").textContent = "이 폰에 받은 기록";
+  $("covSub").textContent = `${c.fyY} 사업연도${plate ? " · " + plate : ""}`;
+  $("covMonths").innerHTML = c.months.map(x => `<div class="mon ${x.st}"><b>${+x.m.split("-")[1]}월</b><span>${esc(x.label)}</span></div>`).join("");
+  const missing = c.months.filter((x, i) => (x.st === "none" && i < c.months.length - 1) || x.st === "part" || x.st === "gap");
+  const lines = [];
+  if (missing.length) {
+    // "1~4월" for runs of whole months, "5월 10일 18:00 이후" for a part
+    const parts = []; let run = [];
+    const flush = () => { if (run.length) parts.push(run.length > 1 ? `${run[0]}~${run[run.length - 1]}월` : `${run[0]}월`); run = []; };
+    for (const x of missing) {
+      const mo = +x.m.split("-")[1];
+      if (x.st === "part") { flush(); parts.push(`${mo}월 ${x.label.replace("까지", "")} 이후`); }
+      else if (run.length && run[run.length - 1] === mo - 1) run.push(mo); else { flush(); run.push(mo); }
+    }
+    flush();
+    lines.push(`<div class="badbox lines"><div><b>빠진 기간이 있습니다</b></div>${parts.map(t => `<div>${esc(t)}</div>`).join("")}<div>해결: 차에서 <b>사업연도 전체</b>로 받기</div></div>`);
+  } else {
+    lines.push(`<div class="note lines" style="background:var(--oksoft)"><div><b>빠진 기간 없음</b></div><div>${c.months.some(x => x.st === "pre") ? "기록이 시작된 뒤로 모두 받았습니다" : "지난달까지 모두 받았습니다"}</div></div>`);
+  }
+  const pre = c.months.filter(x => x.st === "pre").map(x => x.m);
+  if (pre.length) lines.push(`<div class="note lines"><div><b>${esc(monthRuns(pre))}: 기록 전</b></div><div>트립사인 기록 시작 ${esc(fmtAt(c.minBorn, c.tzo))}</div><div>그 전 기간은 따로 준비하세요</div></div>`);
+  if (c.keys.length > 1) lines.push(`<div class="note lines"><div><b>키 ${c.keys.length}개</b> (앱을 다시 설치한 경우 등)</div><div>${c.keys.map(esc).join(" · ")}</div><div>각 기록은 자기 키로 검증됩니다</div></div>`);
+  lines.push(`<div class="lines muted" style="margin-top:10px"><div>마지막으로 받은 시각: ${fmtAt(c.lastMade, c.tzo)}</div><div>이후 변경은 다시 받아야 반영됩니다</div></div>`);
+  $("covVerdict").innerHTML = lines.join("");
+  return c;
+}
+
+// ---------- render ----------
+let current = null;   // { v, rows, vehicle, month, tzo, fy, text, demo }
+function renderSaved() {
+  const list = loadStore(); const ul = $("saved");
+  if (!list.length) { ul.innerHTML = '<li class="muted">아직 없습니다</li>'; return; }
+  // one line of facts, then the buttons on their own line (never squeezed next to the text)
+  ul.innerHTML = list.map((p, i) => `<li><div style="white-space:nowrap">${esc(rangeLabel(p.from || p.month, p.to || p.month))}${p.demo ? ' <span class="tag">예시</span>' : ""}</div><div class="muted" style="white-space:nowrap">키 ${esc(p.fp)}</div><div class="row" style="margin-top:6px"><button class="ghost" data-open="${i}" style="min-height:44px;padding:0 14px">보기</button><button class="ghost" data-del="${i}" style="min-height:44px;padding:0 14px">이 폰에서 지우기</button></div></li>`).join("");
+  ul.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openPack(list[+b.dataset.open].text, list[+b.dataset.open].demo, false));
+  ul.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { const l = loadStore(); l.splice(+b.dataset.del, 1); saveStore(l); renderSaved(); renderCoverage(); });
+}
+
+function monthsBetween(from, to) { const out = []; let [y, m] = from.split("-").map(Number); const [ty, tm] = to.split("-").map(Number); while (y < ty || (y === ty && m <= tm)) { out.push(y + "-" + String(m).padStart(2, "0")); m++; if (m > 12) { m = 1; y++; } } return out; }
+function rangeLabel(from, to) { const [fy, fm] = from.split("-"), [ty, tm] = to.split("-"); return from === to ? `${fy}년 ${+fm}월` : (fy === ty ? `${fy}년 ${+fm}월 ~ ${+tm}월` : `${fy}년 ${+fm}월 ~ ${ty}년 ${+tm}월`); }
+
+async function openPack(text, demo, store) {
+  const v = await verifyPack(text);
+  const tzo = +(v.h.tzo || 540), from = v.h.from, to = v.h.to, fy = +(v.h.fy || 1);
+  demo = demo || v.h.demo === "1";
+  const { rows: all, vehicle } = buildRows(v.entries);
+  const months = monthsBetween(from, to);
+  const rows = all.filter(r => months.includes(ymOf(r.startMs, tzo)));
+  current = { v, rows, vehicle, from, to, tzo, fy, text, demo };
+  // the same vehicle (by plate) arriving with a different key is shown as a fact
+  const before = loadStore();
+  const earlier = before.filter(p => vehicle && p.plate === vehicle.plate && p.fp !== v.fp && !p.demo);
+  const seenSame = before.some(p => vehicle && p.plate === vehicle.plate && p.fp === v.fp);
+  if (store) {
+    const list = loadStore().filter(p => !(p.fp === v.fp && p.from === from && p.to === to));
+    list.push({ fp: v.fp, from, to, fy, tzo, text, demo: !!demo, plate: vehicle ? vehicle.plate : "", at: Date.now() });
+    list.sort((a, b) => (a.from + a.to).localeCompare(b.from + b.to)); saveStore(list); renderSaved();
+  }
+  const t = totals(rows);
+  const late = rows.filter(r => r.late).length, changes = rows.reduce((s, r) => s + r.changes, 0), dchanges = rows.reduce((s, r) => s + r.driverChanges, 0);
+  const unvAll = rows.filter(r => r.unverified), settledN = unvAll.filter(r => r.settled).length;
+  const admins = rows.filter(r => r.admin != null).length, auths = rows.filter(r => r.authOk).length, authBad = rows.filter(r => r.authBad).length;
+  $("demoTag").classList.toggle("hidden", !demo);
+  $("facts").innerHTML = [
+    ["서명", v.signOk ? `<span class="okv">유효 · ${fmt(v.entries.length)}건</span><span class="s">차량에서 서명된 뒤 바뀌지 않음</span>` : `<span class="badv">맞지 않습니다</span><span class="s">서명된 뒤 내용이 바뀌었거나</span><span class="s">다른 키입니다</span>`],
+    ["기록 연결", v.linkBad == null ? `<span class="okv">끊김 없음</span><span class="s">#${v.first} ~ #${v.last}</span>` : `<span class="badv">#${v.linkBad} 앞에서 끊김</span><span class="s">기록이 빠졌거나</span><span class="s">순서가 바뀌었습니다</span>`],
+    ["키 지문", `<span class="fp">${esc(v.fp)}</span>`],
+    ["이전 키와 비교", earlier.length ? `<span class="badv">다름</span><span class="s">이 차량은 전에</span><span class="s">${esc(earlier[earlier.length - 1].fp)}로 받았습니다</span>` : (seenSame ? `<span class="okv">같음</span>` : `<span class="muted">처음 받은 차량</span>`)],
+    ["차량", vehicle ? `<span style="white-space:nowrap">${esc(vehicle.model)}</span><br><span style="white-space:nowrap">${esc(vehicle.plate)}</span>` : '<span class="warnv">차량 정보 없음</span>'],
+    ["받은 기간", esc(rangeLabel(from, to))],
+    ["미기록 구간", t.gapN ? `<span class="warnv">${t.gapN}건 · ${fmt(t.gap)} km</span>` : "없음"],
+    ["미분류", t.uncN ? `<span class="warnv">${t.uncN}건 · ${fmt(t.unc)} km</span>` : "없음"],
+    ["미인증 운행", unvAll.length ? `<span class="badv">${unvAll.length}건 · ${fmt(unvAll.reduce((a, r) => a + r.km, 0))} km</span><span class="s">로그인하지 않고 출발</span>` + (settledN ? `<span class="s">그중 ${settledN}건은 사후 확인 후</span><span class="s">관리자가 구분했습니다</span>` : "") + (t.unvN ? `<span class="s">나머지 ${t.unvN}건은 업무 거리에 넣지 않습니다</span>` : "") : "없음"],
+    ["관리자 수정", admins ? `<span class="warnv">${admins}건</span>` : "없음"],
+    ["폰 본인확인", auths ? `${auths}건` + (authBad ? ` · <span class="badv">서명 불일치 ${authBad}건</span>` : "") : "없음"],
+    ["목적 변경", changes ? `${changes}회` : "없음"],
+    ["사용자 변경", dchanges ? `${dchanges}회` : "없음"],
+    ["도착 24시간 뒤 분류", late ? `${late}건` : "없음"],
+  ].map(([k, v2]) => `<dt>${k}</dt><dd>${v2}</dd>`).join("");
+  $("monthTitle").textContent = `운행기록부 · ${rangeLabel(from, to)}`;
+  $("tiles").innerHTML = [["⑦ 주행거리", fmt(t.km), "km"], ["⑧+⑨ 업무용", fmt(t.work), "km"], ["업무 비율", t.ratio == null ? "–" : t.ratio.toFixed(1), "%"]]
+    .map(([a, b, u]) => `<div class="tile"><span>${a}</span><b>${b} <small>${u}</small></b></div>`).join("");
+  $("tbl").innerHTML = `<tr><th class="l">③ 사용일자</th><th class="l">④ 부서</th><th class="l">성명</th><th>⑤ 주행 전</th><th>⑥ 주행 후</th><th>⑦ 주행거리</th><th>⑧ 출·퇴근</th><th>⑨ 일반 업무</th><th class="l">⑩ 비고</th></tr>` +
+    rows.map(r => `<tr><td class="l">${dayLabel(r.startMs, tzo)}<br><span class="muted">${hm(r.startMs, tzo)}–${hm(r.endMs, tzo)}</span></td><td class="l">${esc(r.driver && r.driver.dept ? r.driver.dept : "–")}</td><td class="l">${esc(r.driver ? r.driver.name : "–")}</td><td>${fmt(r.before)}</td><td>${fmt(r.after)}</td><td><b>${fmt(r.km)}</b></td><td>${r.purpose === "COMMUTE" && r.counts ? fmt(r.km) : "–"}</td><td>${r.purpose === "BUSINESS" && r.counts ? fmt(r.km) : "–"}</td><td class="l rm">${remarkList(r).map(esc).join("<br>")}</td></tr>`).join("") +
+    `<tr class="sum"><td class="l">합계</td><td></td><td></td><td></td><td></td><td>${fmt(t.km)}</td><td>${fmt(t.com)}</td><td>${fmt(t.biz)}</td><td class="l rm">${[t.per ? "개인 " + fmt(t.per) : "", t.unc ? "미분류 " + fmt(t.unc) : "", t.gap ? "미기록 " + fmt(t.gap) : "", t.unv ? "미인증 " + fmt(t.unv) : ""].filter(Boolean).join("<br>")}</td></tr>`;
+  const cover = yearMonthsCovered();
+  // broken on purpose; the month list is shortened to runs ("1월~6월, 8월") so it stays on one line
+  $("yearNote").innerHTML = cover.length ? [`누적 엑셀에 들어가는 달: ${monthRuns(cover)}`, "이 폰에 받은 이 차량의 기록으로 만듭니다", "빠진 기간은 엑셀 맨 아래에 적힙니다"].map(x => `<div>${esc(x)}</div>`).join("") : "";
+  $("result").classList.remove("hidden");
+  tblHint();
+  await renderCoverage();
+  $("result").scrollIntoView({ behavior: "smooth" });
+}
+
+function fyOf(month, fyStart) { const [y, m] = month.split("-").map(Number); return m >= fyStart ? y : y - 1; }
+function yearPacks() {
+  if (!current) return [];
+  const fyY = fyOf(current.to, current.fy);
+  // same vehicle (plate), any key: after an app reinstall the old key's months still count; each pack is verified with its own key
+  const plate = current.vehicle ? current.vehicle.plate : "";
+  return loadStore().filter(p => (p.plate || "") === plate && !!p.demo === !!current.demo && p.fy === current.fy && monthsBetween(p.from, p.to).some(m => fyOf(m, p.fy) === fyY));
+}
+function yearMonthsCovered() {
+  if (!current) return [];
+  const fyY = fyOf(current.to, current.fy), set = new Set();
+  for (const p of yearPacks()) for (const m of monthsBetween(p.from, p.to)) if (fyOf(m, p.fy) === fyY) set.add(m);
+  return [...set].sort();
+}
+
+// ---------- xlsx (form layout, no library) ----------
+// 서버가 .html을 PHP로 해석해도 깨지지 않도록 XML 머리말의 여는/닫는 표시를 쪼개 둠
+const XML_HEAD = "<" + '?xml version="1.0" encoding="UTF-8" standalone="yes"?' + ">";
+function colName(i) { let s = ""; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+const xesc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+function buildSheet(rowsByMonth, info) {
+  // styles: 0 plain, 1 header box, 2 text box, 3 number box, 4 title, 5 ratio box, 6 bold label, 7 center text box
+  const cells = new Map(); const merges = []; let maxRow = 0;
+  const put = (r, c, v, s, num) => { cells.set(r + ":" + c, { v, s, num }); if (r > maxRow) maxRow = r; };
+  const box = (r1, c1, r2, c2, v, s) => { for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) put(r, c, r === r1 && c === c1 ? v : "", s); if (r1 !== r2 || c1 !== c2) merges.push(colName(c1) + r1 + ":" + colName(c2) + r2); };
+  box(1, 0, 1, 8, "업무용승용차 운행기록부", 4);
+  box(2, 0, 2, 0, "사업연도", 1); box(2, 1, 2, 3, info.fyText, 2); box(2, 5, 2, 5, "법인명", 1); box(2, 6, 2, 8, "", 2);
+  box(3, 5, 3, 5, "사업자등록번호", 1); box(3, 6, 3, 8, "", 2);
+  put(4, 0, "1. 기본정보", 6);
+  box(5, 0, 5, 1, "①차 종", 1); box(5, 2, 5, 4, info.model, 2); box(5, 5, 5, 6, "②자동차등록번호", 1); box(5, 7, 5, 8, info.plate, 2);
+  put(6, 0, "2. 업무용 사용비율 계산", 6);
+  box(7, 0, 8, 0, "③사용일자\n(요일)", 1); box(7, 1, 7, 2, "④사용자", 1); box(7, 3, 7, 5, "운 행 내 역", 1); box(7, 6, 7, 7, "업무용 사용거리(㎞)", 1); box(7, 8, 8, 8, "⑩비 고", 1);
+  box(8, 1, 8, 1, "부서", 1); box(8, 2, 8, 2, "성명", 1); box(8, 3, 8, 3, "⑤주행 전\n계기판의 거리(㎞)", 1); box(8, 4, 8, 4, "⑥주행 후\n계기판의 거리(㎞)", 1); box(8, 5, 8, 5, "⑦주행거리(㎞)", 1); box(8, 6, 8, 6, "⑧출·퇴근용(㎞)", 1); box(8, 7, 8, 7, "⑨일반 업무용(㎞)", 1);
+  let r = 9; const all = [];
+  for (const m of rowsByMonth) for (const x of m.rows) {
+    all.push(x);
+    put(r, 0, ymdLabel(x.startMs, m.tzo), 7);
+    put(r, 1, x.driver ? x.driver.dept : "", 2); put(r, 2, x.driver ? x.driver.name : "", 2);
+    if (x.before != null) put(r, 3, x.before, 3, true); else put(r, 3, "", 3);
+    if (x.after != null) put(r, 4, x.after, 3, true); else put(r, 4, "", 3);
+    put(r, 5, x.km, 3, true);
+    if (x.purpose === "COMMUTE" && x.counts) put(r, 6, x.km, 3, true); else put(r, 6, "", 3);
+    if (x.purpose === "BUSINESS" && x.counts) put(r, 7, x.km, 3, true); else put(r, 7, "", 3);
+    put(r, 8, remark(x), 2); r++;
+  }
+  const t = totals(all);
+  r++;
+  box(r, 0, r, 2, "⑪사업연도 총주행 거리(㎞)", 1); box(r, 3, r, 5, "⑫사업연도 업무용 사용거리(㎞)", 1); box(r, 6, r, 8, "⑬업무사용비율(⑫/⑪)", 1); r++;
+  box(r, 0, r, 2, t.km, 3); cells.get(r + ":0").num = true;
+  box(r, 3, r, 5, t.work, 3); cells.get(r + ":3").num = true;
+  box(r, 6, r, 8, t.ratio == null ? "" : t.ratio, 5); if (t.ratio != null) cells.get(r + ":6").num = true;
+  r += 2;
+  put(r, 0, info.footer, 0);
+  const widths = [16, 14, 10, 15, 15, 12, 12, 12, 22];
+  let rowsXml = "";
+  for (let i = 1; i <= maxRow; i++) {
+    let cx = "";
+    for (let c = 0; c <= 8; c++) {
+      const cell = cells.get(i + ":" + c); if (!cell) continue;
+      const ref = colName(c) + i;
+      if (cell.num && cell.v !== "") cx += `<c r="${ref}" s="${cell.s}"><v>${cell.v}</v></c>`;
+      else if (cell.v === "") cx += `<c r="${ref}" s="${cell.s}"/>`;
+      else cx += `<c r="${ref}" s="${cell.s}" t="inlineStr"><is><t xml:space="preserve">${xesc(cell.v)}</t></is></c>`;
+    }
+    const ht = i === 1 ? ' ht="30" customHeight="1"' : (i === 8 ? ' ht="42" customHeight="1"' : "");
+    rowsXml += `<row r="${i}"${ht}>${cx}</row>`;
+  }
+  return `${XML_HEAD}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${rowsXml}</sheetData><mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+}
+const STYLES = `${XML_HEAD}<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="0.0&quot;%&quot;"/></numFmts><fonts count="3"><font><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="16"/><name val="맑은 고딕"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F4F7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function zipStore(files) {
+  const parts = [], central = []; let offset = 0;
+  for (const [name, text] of files) {
+    const nameB = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, 0, true); lh.setUint16(12, 0x5A21, true); lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, nameB.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), nameB, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, 0, true); ch.setUint16(14, 0x5A21, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+    ch.setUint16(28, nameB.length, true); ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), nameB);
+    offset += 30 + nameB.length + data.length;
+  }
+  const csize = central.reduce((s, b) => s + b.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, csize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+function xlsxBlob(sheetXml) {
+  return zipStore([
+    ["[Content_Types].xml", `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+    ["_rels/.rels", `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ["xl/workbook.xml", `${XML_HEAD}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="운행기록부" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ["xl/_rels/workbook.xml.rels", `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ["xl/styles.xml", STYLES],
+    ["xl/worksheets/sheet1.xml", sheetXml],
+  ]);
+}
+function fyText(fyY, fyStart) {
+  const end = new Date(Date.UTC(fyY, fyStart - 1 + 12, 0));
+  return `${fyY}.${String(fyStart).padStart(2, "0")}.01 ~ ${end.getUTCFullYear()}.${String(end.getUTCMonth() + 1).padStart(2, "0")}.${String(end.getUTCDate()).padStart(2, "0")}`;
+}
+// Rows of several packs merged: for each trip the pack made last wins (it holds the latest purpose / user).
+async function mergedRows(packs, onlyMonths) {
+  const byId = new Map(); let vehicle = null, allOk = true, tzo = 540;
+  const sorted = [...packs].sort((a, b) => (a.at || 0) - (b.at || 0));
+  for (const p of sorted) {
+    const v = await verifyPack(p.text); tzo = p.tzo;
+    allOk = allOk && v.signOk && v.linkBad == null;
+    const { rows, vehicle: veh } = buildRows(v.entries); if (veh) vehicle = veh;
+    const months = monthsBetween(p.from, p.to);
+    for (const r of rows) { const m = ymOf(r.startMs, p.tzo); if (months.includes(m) && (!onlyMonths || onlyMonths.includes(m))) byId.set(r.id, r); }
+  }
+  const rows = [...byId.values()].sort((a, b) => a.startMs - b.startMs);
+  return { rows, vehicle, allOk, tzo };
+}
+async function download(year) {
+  if (!current) return;
+  let m;
+  if (year) m = await mergedRows(yearPacks(), yearMonthsCovered());
+  else m = { rows: current.rows, vehicle: current.vehicle, allOk: current.v.signOk && current.v.linkBad == null, tzo: current.tzo };
+  const veh = m.vehicle || { model: "", plate: "" };
+  const fyY = fyOf(current.to, current.fy);
+  const months = year ? yearMonthsCovered() : monthsBetween(current.from, current.to);
+  let gapNote = "";
+  // months before the ledger existed hold no TripSign records: say so instead of letting them read as "included"
+  const bornMs = year ? Math.min(...(await Promise.all(yearPacks().map(async p => +((await verified(p)).h.born || 0)))).filter(b => b > 0)) : +(current.v.h.born || 0);
+  if (bornMs > 0 && isFinite(bornMs) && bornMs > monthStart(months[0], m.tzo || current.tzo)) gapNote += " · 트립사인 기록 시작: " + ymdLabel(bornMs, m.tzo || current.tzo).replace(/ \(.\)$/, "");
+  if (year) {
+    const c = await coverage(Date.now(), current.vehicle ? current.vehicle.plate : "", current.demo);
+    const miss = c ? c.months.filter((x, i) => (x.st === "none" && i < c.months.length - 1) || x.st === "part" || x.st === "gap") : [];
+    if (miss.length) gapNote += " · 빠진 기간: " + miss.map(x => x.m + (x.st === "part" ? "(" + x.label + ")" : "")).join(", ");
+  }
+  const keys = year ? [...new Set(await Promise.all(yearPacks().map(async p => (await verified(p)).fp)))] : [current.v.fp];
+  const footer = `트립사인 서명 검증: ${m.allOk ? "유효" : "맞지 않음"} · 키 지문 ${keys.join(", ")} · 포함한 달: ${months.join(", ")} · ⑪⑫⑬은 포함한 달의 합계${gapNote}${current.demo ? " · 예시 데이터" : ""}`;
+  const xml = buildSheet([{ rows: m.rows, tzo: m.tzo }], { fyText: fyText(fyY, current.fy), model: veh.model, plate: veh.plate, footer });
+  const blob = xlsxBlob(xml);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = year ? `운행기록부_${fyY}사업연도_누적.xlsx` : `운행기록부_${current.from}_${current.to}.xlsx`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  window.__lastXlsx = blob;   // test hook
+}
+
+// ---------- camera ----------
+let stream = null, detector = null, busy = false;
+async function startCamera() {
+  $("recvErr").classList.add("hidden"); hideNote();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+  } catch (e) {
+    $("recvErr").textContent = "카메라를 열 수 없습니다. 브라우저 설정에서 카메라 권한을 허용해 주세요. (" + e.name + ")";
+    $("recvErr").classList.remove("hidden"); return;
+  }
+  const video = $("video"); video.srcObject = stream; video.style.display = "block"; await video.play();
+  $("prog").classList.remove("hidden");
+  try { if ("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("qr_code")) detector = new BarcodeDetector({ formats: ["qr_code"] }); } catch (e) { detector = null; }
+  const canvas = document.createElement("canvas"); const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const tick = async () => {
+    if (!stream) return;
+    if (!busy && video.readyState >= 2) {
+      busy = true;
+      try {
+        let texts = [];
+        if (detector) { const codes = await detector.detect(video); texts = codes.map(c => c.rawValue); }
+        else {
+          const w = 720, h = Math.round(video.videoHeight * w / video.videoWidth);
+          canvas.width = w; canvas.height = h; ctx.drawImage(video, 0, 0, w, h);
+          const img = ctx.getImageData(0, 0, w, h); const code = jsQR(img.data, w, h, { inversionAttempts: "dontInvert" });
+          if (code) texts = [code.data];
+        }
+        for (const t of texts) { if (takeFrame(t)) { progress(); hideNote(); } else noteFor(t); }
+        const bytes = joined();
+        if (bytes) { stopCamera(); await finish(bytes); return; }
+      } catch (e) { /* keep scanning */ }
+      busy = false;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+// A QR that is not a TripSign frame (a menu, Wi-Fi, another site) is ignored for receiving, but the
+// person is told so after it has been seen twice in a row. A TripSign frame that was already counted
+// (duplicate) says nothing.
+const NOTES = {
+  foreign: "<div><b>트립사인 QR이 아닙니다.</b></div><div>차량 화면에 뜬 QR을 비춰 주세요.</div>",
+  broken: "<div><b>트립사인 QR을 읽지 못했습니다.</b></div><div>조금 더 가까이 비춰 주세요.</div>",
+};
+let noteKind = "", noteHits = 0;
+function frameKind(raw) {
+  const body = raw.indexOf("#") >= 0 ? raw.slice(raw.indexOf("#") + 1) : raw;
+  const p = body.split(":");
+  if (p[0] === "TSQ2" && p.length === 7) return crcHex(p[6]) === p[5] ? "ok" : "broken";
+  if (p[0] === "TSQ1" && p.length === 6) return crcHex(p[5]) === p[4] ? "ok" : "broken";
+  return /^TSQ[12]:/.test(body) ? "broken" : "foreign";
+}
+function noteFor(raw) {
+  const k = frameKind(raw);
+  if (k === "ok") return;
+  noteHits = k === noteKind ? noteHits + 1 : 1; noteKind = k;
+  if (noteHits >= 2) { $("recvNote").innerHTML = NOTES[k]; $("recvNote").classList.remove("hidden"); }
+}
+function hideNote() { noteKind = ""; noteHits = 0; $("recvNote").classList.add("hidden"); }
+function stopCamera() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; $("video").style.display = "none"; }
+function progress() {
+  const n = recvCount(), t = recvTotal();
+  $("barFill").style.width = Math.round(n * 100 / (t || 1)) + "%";
+  $("progText").textContent = t ? `${n} / ${t}장 받음` : "QR을 화면 가운데에 맞춰 주세요";
+}
+async function finish(bytes) {
+  $("progText").textContent = "모두 받았습니다. 서명을 확인하는 중…";
+  try { const text = await gunzip(bytes); await openPack(text, false, true); $("progText").textContent = "받기 완료"; }
+  catch (e) { $("recvErr").textContent = "받은 내용을 읽지 못했습니다: " + e.message; $("recvErr").classList.remove("hidden"); }
+}
+window.__tsTakeFrame = t => { const ok = takeFrame(t); const b = joined(); return { ok, n: recvCount(), total: recvTotal(), done: !!b }; };   // test hook
+window.__tsFountainCoef = (sid, j, k) => Array.from(fountainCoef(sid, j, k), x => x | 0);   // test hook
+window.__tsFinish = async () => { const b = joined(); if (b) await finish(b); };
+
+$("startBtn").onclick = startCamera;
+$("demoBtn").onclick = async () => { const text = await gunzip(b64bytes(DEMO_PACK)); await openPack(text, true, true); };
+$("xMonth").onclick = () => download(false);
+$("xYear").onclick = () => download(true);
+const DEMO_PACK = "/*DEMO*/";
+renderSaved();
+renderCoverage();
+// Opened by the phone camera from one of the car's QR frames: keep that frame, clear it from the
+// address bar, and start the camera right away (the button stays as a fallback).
+if (location.hash.startsWith("#TSQ1:") || location.hash.startsWith("#TSQ2:")) {
+  takeFrame(location.hash);
+  history.replaceState(null, "", location.pathname);
+  progress();
+  startCamera();
+}
+</script>
+</body>
+</html>

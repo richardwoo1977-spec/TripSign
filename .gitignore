@@ -1,0 +1,21 @@
+# ver 1.1.0 | 2026-11-11 15:10
+# 1.1.0: secrets, local backups, recordings and staging folders never go to the repository
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.keystore
+*.jks
+.env
+.env.*
+/_backup*/
+/_incoming*/
+/_video/
+/server/deploy/

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ver 1.2.0 | 2026-11-04 13:35 -->
+<!-- Icon D1 (chosen 11/4): logbook page with a road + green seal; everything inside the 66dp safe circle -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M38,24 L66,24 A6,6 0 0 1 72,30 L72,72 A6,6 0 0 1 66,78 L38,78 A6,6 0 0 1 32,72 L32,30 A6,6 0 0 1 38,24 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF9DB3D6"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M38,34 L54,34" />
+    <path
+        android:fillColor="#FF173F7A"
+        android:pathData="M37,72 L45,40 L49,40 L57,72 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M47,45 L47,49 M47,54 L47,59 M47,64 L47,70" />
+    <path
+        android:fillColor="#FF173F7A"
+        android:pathData="M68,56.5 A13.5,13.5 0 1 1 67.99,56.5 Z" />
+    <path
+        android:fillColor="#FF2FBF8F"
+        android:pathData="M68,58 A12,12 0 1 1 67.99,58 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M62.5,70 L66.5,74 L73.5,66" />
+</vector>

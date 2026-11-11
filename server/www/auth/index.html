@@ -1,0 +1,234 @@
+<!doctype html>
+<!-- ver 1.0.1 | 2026-11-06 16:48 -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>트립사인 본인확인</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#F3F5F8;color:#16243A;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;word-break:keep-all;-webkit-text-size-adjust:100%}
+main{max-width:480px;margin:0 auto;padding:22px 18px 40px}
+.brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#2563EB;margin-bottom:18px}
+.brand i{display:inline-block;width:22px;height:22px;border-radius:6px;background:#2563EB}
+h1{font-size:24px;font-weight:800;line-height:1.35;margin-bottom:8px}
+.sub{font-size:15px;line-height:1.6;color:#5B6B80}
+.card{background:#fff;border:1px solid #E1E7EF;border-radius:16px;padding:20px 18px;margin-top:18px}
+label{display:block;font-size:14px;font-weight:700;color:#3A4A60;margin:14px 0 6px}
+label:first-child{margin-top:0}
+input[type=tel],input[type=email],input[type=text]{width:100%;height:52px;border:1.5px solid #C9D3DF;border-radius:12px;padding:0 14px;font-size:18px;font-weight:600;color:#16243A;background:#fff;outline:none}
+input:focus{border-color:#2563EB}
+.code{letter-spacing:10px;text-align:center;font-size:26px}
+.agree{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13.5px;line-height:1.6;color:#3A4A60}
+.agree input{width:22px;height:22px;flex:none;margin-top:1px;accent-color:#2563EB}
+.terms{margin-top:10px;font-size:12.5px;line-height:1.65;color:#5B6B80;background:#F6F8FB;border-radius:10px;padding:12px 14px}
+button{width:100%;height:54px;border:0;border-radius:14px;background:#2563EB;color:#fff;font-size:17px;font-weight:800;margin-top:18px}
+button:disabled{opacity:.45}
+button.ghost{background:#fff;color:#2563EB;border:1.5px solid #C9D3DF;margin-top:10px}
+.msg{min-height:20px;margin-top:12px;font-size:14px;line-height:1.55;font-weight:600}
+.msg.bad{color:#C0392B}.msg.ok{color:#127A4B}
+.big{font-size:52px;font-weight:800;letter-spacing:12px;text-align:center;padding:22px 0 8px;font-variant-numeric:tabular-nums}
+.timer{text-align:center;font-size:15px;color:#5B6B80;font-variant-numeric:tabular-nums}
+.done{text-align:center;padding:10px 0}
+.done b{display:block;font-size:22px;margin:10px 0 6px}
+.hidden{display:none}
+.foot{margin-top:22px;font-size:12px;line-height:1.6;color:#8693A6;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><i></i>트립사인</div>
+
+  <section id="vLoading">
+    <h1>확인 중입니다</h1>
+    <p class="sub">잠시만 기다려 주세요.</p>
+  </section>
+
+  <section id="vError" class="hidden">
+    <h1 id="errTitle">QR을 다시 찍어 주세요</h1>
+    <p class="sub" id="errText"></p>
+  </section>
+
+  <section id="vForm" class="hidden">
+    <h1 id="formTitle">본인확인</h1>
+    <p class="sub">차 화면 앞에서 본인확인을 한 기록이<br>운행기록에 서명되어 남습니다.</p>
+    <div class="card">
+      <label for="phone">휴대폰 번호</label>
+      <input id="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000" maxlength="13">
+      <label for="email">이메일</label>
+      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="name@company.com" maxlength="120">
+      <div class="agree"><input id="agree" type="checkbox"><label for="agree" style="margin:0;font-weight:600">개인정보 수집·이용에 동의합니다 (필수)</label></div>
+      <div class="terms">
+        수집 항목: 휴대폰 번호, 이메일<br>
+        목적: 차량 운행기록의 본인확인 증빙<br>
+        보유 기간: 확인한 날부터 5년 (세무 증빙 보관 기간)<br>
+        동의하지 않으면 본인확인을 할 수 없습니다.<br>
+        운행기록에는 가린 번호와 가린 이메일만 남습니다.
+      </div>
+      <button id="btnSend" disabled>인증번호 받기</button>
+      <div class="msg" id="msgForm"></div>
+    </div>
+  </section>
+
+  <section id="vCode" class="hidden">
+    <h1>메일로 받은 번호</h1>
+    <p class="sub"><b id="sentTo"></b><br>위 주소로 6자리 번호를 보냈습니다.<br>메일이 안 보이면 스팸함도 확인해 주세요.</p>
+    <div class="card">
+      <label for="code">인증번호 6자리</label>
+      <input id="code" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+      <button id="btnVerify" disabled>확인</button>
+      <button id="btnResend" class="ghost">번호 다시 받기</button>
+      <div class="msg" id="msgCode"></div>
+    </div>
+  </section>
+
+  <section id="vCar" class="hidden">
+    <h1>차 화면에 이 번호를 입력하세요</h1>
+    <p class="sub">차가 이 번호를 받아야 본인확인이 끝납니다.</p>
+    <div class="card">
+      <div class="big" id="carCode">------</div>
+      <div class="timer" id="carTimer"></div>
+    </div>
+  </section>
+
+  <section id="vDone" class="hidden">
+    <div class="card done">
+      <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#E7F6EE"/><path d="M17 29l7 7 15-16" stroke="#127A4B" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>본인확인이 끝났습니다</b>
+      <p class="sub">이 창은 닫으셔도 됩니다.</p>
+    </div>
+  </section>
+
+  <p class="foot">주식회사 비욘드스파크 · 이 페이지는 차 화면의 QR로만 열립니다</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var API = '/auth/api/';
+  var $ = function (id) { return document.getElementById(id); };
+  var VIEWS = ['vLoading', 'vError', 'vForm', 'vCode', 'vCar', 'vDone'];
+  var st = { sid: '', pt: '', purpose: '' };
+  var ERR = {
+    ERR_QR_OLD: ['QR이 지났습니다', '차 화면의 QR은 10초마다 바뀝니다.\n차 화면에 지금 떠 있는 QR을 다시 찍어 주세요.'],
+    ERR_QR: ['읽을 수 없는 QR입니다', '차 화면에 떠 있는 트립사인 QR을 다시 찍어 주세요.'],
+    ERR_TAKEN: ['이미 확인 중인 QR입니다', '다른 폰이 이 QR로 본인확인을 시작했습니다.\n차 화면에서 처음부터 다시 시작해 주세요.'],
+    ERR_EXPIRED: ['시간이 지났습니다', '차 화면에서 본인확인을 처음부터 다시 시작해 주세요.'],
+    ERR_SESSION: ['읽을 수 없는 QR입니다', '차 화면에 떠 있는 트립사인 QR을 다시 찍어 주세요.'],
+    ERR_PHONE: ['처음부터 다시 해 주세요', 'QR을 찍은 폰에서만 이어서 할 수 있습니다.'],
+    ERR_RATE: ['잠시 뒤 다시 해 주세요', '요청이 너무 많습니다.'],
+    ERR_SERVER: ['잠시 뒤 다시 해 주세요', '서버에 문제가 있습니다.']
+  };
+  var MSG = {
+    ERR_EMAIL: '이메일 주소를 확인해 주세요.',
+    ERR_PHONE_NO: '휴대폰 번호를 확인해 주세요. (010으로 시작하는 번호)',
+    ERR_AGREE: '개인정보 수집·이용에 동의해야 합니다.',
+    ERR_MAIL: '메일을 보내지 못했습니다. 잠시 뒤 다시 눌러 주세요.',
+    ERR_SENDS: '번호는 세 번까지 받을 수 있습니다. 차 화면에서 처음부터 다시 시작해 주세요.',
+    ERR_CODE: '번호가 맞지 않습니다.',
+    ERR_CODE_OLD: '번호가 지났습니다. 번호를 다시 받아 주세요.',
+    ERR_TRIES: '틀린 횟수가 많습니다. 차 화면에서 처음부터 다시 시작해 주세요.',
+    ERR_STATE: '처음부터 다시 해 주세요.',
+    ERR_RATE: '요청이 너무 많습니다. 잠시 뒤 다시 해 주세요.'
+  };
+
+  function show(id) { VIEWS.forEach(function (v) { $(v).classList.toggle('hidden', v !== id); }); window.scrollTo(0, 0); }
+  function fatal(code) {
+    var e = ERR[code] || ['처음부터 다시 해 주세요', '차 화면에서 본인확인을 다시 시작해 주세요.'];
+    $('errTitle').textContent = e[0];
+    $('errText').innerText = e[1];
+    show('vError');
+  }
+  function msg(el, text, ok) { el.textContent = text || ''; el.className = 'msg' + (text ? (ok ? ' ok' : ' bad') : ''); }
+
+  function post(path, body) {
+    return fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'omit', cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return { error: 'ERR_SERVER' }; }).then(function (j) { j._status = r.status; return j; }); })
+      .catch(function () { return { error: 'ERR_NET', _status: 0 }; });
+  }
+
+  function phoneDigits() { return $('phone').value.replace(/\D/g, ''); }
+  function formReady() {
+    var p = phoneDigits(), e = $('email').value.trim();
+    $('btnSend').disabled = !(/^01[016789]\d{7,8}$/.test(p) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && $('agree').checked);
+  }
+  $('phone').addEventListener('input', function () {
+    var d = phoneDigits().slice(0, 11);
+    this.value = d.length > 7 ? d.slice(0, 3) + '-' + d.slice(3, d.length - 4) + '-' + d.slice(d.length - 4) : d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
+    formReady();
+  });
+  $('email').addEventListener('input', formReady);
+  $('agree').addEventListener('change', formReady);
+
+  function sendMail() {
+    $('btnSend').disabled = true;
+    msg($('msgForm'), '');
+    msg($('msgCode'), '');
+    post('email', { sid: st.sid, pt: st.pt, phone: phoneDigits(), email: $('email').value.trim(), agree: $('agree').checked }).then(function (j) {
+      formReady();
+      if (j.error) {
+        if (ERR[j.error] && !MSG[j.error]) return fatal(j.error);
+        var t = MSG[j.error] || (j.error === 'ERR_NET' ? '인터넷 연결을 확인해 주세요.' : '다시 시도해 주세요.');
+        return msg($('vCode').classList.contains('hidden') ? $('msgForm') : $('msgCode'), t, false);
+      }
+      $('sentTo').textContent = j.sent;
+      if (j.testCode) $('code').value = j.testCode;  // 시험 서버에서만 옴
+      codeReady();
+      show('vCode');
+      $('code').focus();
+    });
+  }
+  $('btnSend').addEventListener('click', sendMail);
+  $('btnResend').addEventListener('click', sendMail);
+
+  function codeReady() { $('btnVerify').disabled = !/^\d{6}$/.test($('code').value); }
+  $('code').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); codeReady(); });
+  $('btnVerify').addEventListener('click', function () {
+    $('btnVerify').disabled = true;
+    post('verify', { sid: st.sid, pt: st.pt, code: $('code').value }).then(function (j) {
+      codeReady();
+      if (j.error) {
+        if (ERR[j.error] && !MSG[j.error]) return fatal(j.error);
+        var t = MSG[j.error] || '다시 시도해 주세요.';
+        if (j.error === 'ERR_CODE' && typeof j.left === 'number') t += ' (남은 횟수 ' + j.left + '번)';
+        return msg($('msgCode'), t, false);
+      }
+      showCar(j.carCode, j.ttl || 180);
+    });
+  });
+
+  function showCar(code, ttl) {
+    $('carCode').textContent = code;
+    show('vCar');
+    var end = Date.now() + ttl * 1000;
+    var tick = setInterval(function () {
+      var left = Math.max(0, Math.round((end - Date.now()) / 1000));
+      $('carTimer').textContent = left > 0 ? Math.floor(left / 60) + ':' + ('0' + left % 60).slice(-2) + ' 안에 입력하세요' : '시간이 지났습니다 · 차 화면에서 다시 시작해 주세요';
+      if (left <= 0) clearInterval(tick);
+    }, 500);
+    var poll = setInterval(function () {
+      post('status', { sid: st.sid, pt: st.pt }).then(function (j) {
+        if (j.state === 'claimed') { clearInterval(poll); clearInterval(tick); show('vDone'); }
+        else if (j.error === 'ERR_EXPIRED') { clearInterval(poll); }
+      });
+    }, 3000);
+  }
+
+  // QR 내용: https://tripsign.beyondspark.kr/auth#s=<세션>.<시각 칸>.<확인값>
+  var m = /(?:^#|&)s=([a-z2-7]{26})\.(\d{1,12})\.([0-9a-f]{16})/.exec(location.hash || '');
+  // 주소창·방문 기록에 세션 값이 남지 않게 바로 지운다
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* 무시 */ }
+  if (!m) return fatal('ERR_QR');
+  st.sid = m[1];
+  post('scan', { sid: m[1], t: Number(m[2]), m: m[3] }).then(function (j) {
+    if (j.error) return fatal(j.error === 'ERR_NET' ? 'ERR_SERVER' : j.error);
+    st.pt = j.pt;
+    st.purpose = j.purpose;
+    $('formTitle').textContent = j.purpose === 'enroll' ? '등록된 사용자 본인확인' : '운행 본인확인';
+    show('vForm');
+  });
+})();
+</script>
+</body>
+</html>

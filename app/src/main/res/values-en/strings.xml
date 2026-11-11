@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ver 1.0.0 | 2026-11-04 16:00 -->
+<!-- Launcher label when the head unit's system language is English. In-app language follows Settings. -->
+<resources>
+    <string name="app_name">TripSign</string>
+</resources>
