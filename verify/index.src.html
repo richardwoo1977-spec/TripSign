@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ver 1.4.5 | 2026-11-07 13:25 -->
+<!-- ver 1.4.6 | 2026-11-11 16:10 -->
 <!-- TripSign 폰 검증 페이지. 서버로 아무것도 보내지 않습니다. 받은 기록은 이 폰 브라우저에만 저장됩니다. -->
 <!-- build: tools/build_verify.py 가 /*JSQR*/ 자리에 jsQR(Apache-2.0)을 넣어 index.html 한 파일을 만듭니다. -->
 <html lang="ko">
@@ -274,7 +274,7 @@ async function verifyPack(text) {
   }
   const headOk = headHash != null && await sigOk(headHash, headSig);
   const main = entries.filter(e => e.kind === "E");
-  return { h, fp, entries, signOk: headOk && extraBad === 0, linkBad, first: main.length ? main[0].seq : null, last: main.length ? main[main.length - 1].seq : null };
+  return { h, fp, entries, signOk: headOk && extraBad === 0, linkBad, extraN: entries.length - main.length, first: main.length ? main[0].seq : null, last: main.length ? main[main.length - 1].seq : null };
 }
 
 const PURPOSE = { BUSINESS: "업무", COMMUTE: "출퇴근", PERSONAL: "개인" };
@@ -510,7 +510,7 @@ async function openPack(text, demo, store) {
   $("demoTag").classList.toggle("hidden", !demo);
   $("facts").innerHTML = [
     ["서명", v.signOk ? `<span class="okv">유효 · ${fmt(v.entries.length)}건</span><span class="s">차량에서 서명된 뒤 바뀌지 않음</span>` : `<span class="badv">맞지 않습니다</span><span class="s">서명된 뒤 내용이 바뀌었거나</span><span class="s">다른 키입니다</span>`],
-    ["기록 연결", v.linkBad == null ? `<span class="okv">끊김 없음</span><span class="s">#${v.first} ~ #${v.last}</span>` : `<span class="badv">#${v.linkBad} 앞에서 끊김</span><span class="s">기록이 빠졌거나</span><span class="s">순서가 바뀌었습니다</span>`],
+    ["기록 연결", v.linkBad == null ? `<span class="okv">끊김 없음</span><span class="s">#${v.first} ~ #${v.last}</span>${v.extraN ? `<span class="s">차량 정보 ${fmt(v.extraN)}건은 따로 서명</span>` : ""}` : `<span class="badv">#${v.linkBad} 앞에서 끊김</span><span class="s">기록이 빠졌거나</span><span class="s">순서가 바뀌었습니다</span>`],
     ["키 지문", `<span class="fp">${esc(v.fp)}</span>`],
     ["이전 키와 비교", earlier.length ? `<span class="badv">다름</span><span class="s">이 차량은 전에</span><span class="s">${esc(earlier[earlier.length - 1].fp)}로 받았습니다</span>` : (seenSame ? `<span class="okv">같음</span>` : `<span class="muted">처음 받은 차량</span>`)],
     ["차량", vehicle ? `<span style="white-space:nowrap">${esc(vehicle.model)}</span><br><span style="white-space:nowrap">${esc(vehicle.plate)}</span>` : '<span class="warnv">차량 정보 없음</span>'],

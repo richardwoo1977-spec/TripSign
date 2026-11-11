@@ -1,4 +1,4 @@
-# ver 1.0.1 | 2026-11-07 16:46
+# ver 1.0.2 | 2026-11-11 16:10
 """TripSign 본인확인 서버 (tripsign.beyondspark.kr/auth).
 
 차 화면의 QR → 폰 브라우저 → 이메일 6자리 인증(+전화번호 입력) → 폰에 뜬 '차 확인번호'를 차에 입력
@@ -164,7 +164,7 @@ def mail_html(code: str) -> str:
     return (
         '<div style="font-family:\'Apple SD Gothic Neo\',\'Noto Sans KR\',sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#16243A">'
         '<div style="font-size:16px;font-weight:700">트립사인 본인확인</div>'
-        '<p style="font-size:14px;line-height:1.7;color:#374151">아래 6자리 번호를 폰 화면에 입력해 주세요. 10분 동안 쓸 수 있어요.</p>'
+        f'<p style="font-size:14px;line-height:1.7;color:#374151">아래 6자리 번호를 폰 화면에 입력해 주세요. {CODE_TTL_S // 60}분 동안 쓸 수 있어요.</p>'
         f'<div style="font-size:40px;font-weight:800;letter-spacing:10px;padding:18px 0;text-align:center;background:#EEF4FF;border-radius:12px">{code}</div>'
         '<p style="font-size:13px;line-height:1.7;color:#4B5563">직접 요청하지 않으셨다면 이 메일은 무시하셔도 됩니다. 이 번호를 다른 사람에게 알려 주지 마세요.</p>'
         '<p style="font-size:12px;color:#6B7280">보내기 전용 메일입니다 · 주식회사 비욘드스파크</p></div>'
